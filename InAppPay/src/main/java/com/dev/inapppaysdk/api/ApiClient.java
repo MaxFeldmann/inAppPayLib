@@ -7,7 +7,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
-    private static final String BASE_URL = "https://us-central1-inapppay-47111.cloudfunctions.net";
+    private static final String BASE_URL = "";
     private static Retrofit retrofit = null;
     private static InAppApiService apiService = null;
 

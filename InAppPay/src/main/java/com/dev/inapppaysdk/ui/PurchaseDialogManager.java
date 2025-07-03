@@ -11,6 +11,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.view.ContextThemeWrapper;
+
 import com.dev.inapppaysdk.R;
 import com.dev.inapppaysdk.constants.InAppConstants;
 import com.dev.inapppaysdk.logic.Validator;
@@ -31,7 +33,8 @@ public class PurchaseDialogManager {
     private PurchaseContextManager contextManager;
 
     public PurchaseDialogManager(Context context, PurchaseDialogCallback dialogCallback) {
-        this.context = context;
+        this.context = new ContextThemeWrapper(context,
+                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog);
         this.dialogCallback = dialogCallback;
         this.contextManager = PurchaseContextManager.getInstance();
     }
