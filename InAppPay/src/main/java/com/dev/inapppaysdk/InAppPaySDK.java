@@ -20,7 +20,6 @@ import retrofit2.Response;
 public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDialogCallback {
 
     private Context context;
-    private CardCallback cardCallback;
     private String userId;
     private String projectName;
     private String userCountry;
@@ -33,12 +32,11 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         contextManager = PurchaseContextManager.getInstance();
     }
 
-    public InAppPaySDK(String projectName, Context context, CardCallback callback) {
+    public InAppPaySDK(String projectName, Context context) {
         this.context = context;
-        this.cardCallback = callback;
         this.apiService = ApiClient.getApiService();
         this.contextManager = PurchaseContextManager.getInstance();
-        this.dialogManager = new PurchaseDialogManager(context, callback, this);
+        this.dialogManager = new PurchaseDialogManager(context, this);
         this.projectName = projectName;
         this.userId = DeviceUtils.getAndroidId(context);
         this.userCountry = DeviceUtils.detectUserCountry(context);

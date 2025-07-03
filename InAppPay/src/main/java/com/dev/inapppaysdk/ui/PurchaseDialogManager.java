@@ -12,7 +12,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.dev.inapppaysdk.R;
-import com.dev.inapppaysdk.callbacks.CardCallback;
 import com.dev.inapppaysdk.constants.InAppConstants;
 import com.dev.inapppaysdk.logic.Validator;
 import com.dev.inapppaysdk.logic.Watcher;
@@ -28,13 +27,11 @@ public class PurchaseDialogManager {
     }
 
     private Context context;
-    private CardCallback cardCallback;
     private PurchaseDialogCallback dialogCallback;
     private PurchaseContextManager contextManager;
 
-    public PurchaseDialogManager(Context context, CardCallback cardCallback, PurchaseDialogCallback dialogCallback) {
+    public PurchaseDialogManager(Context context, PurchaseDialogCallback dialogCallback) {
         this.context = context;
-        this.cardCallback = cardCallback;
         this.dialogCallback = dialogCallback;
         this.contextManager = PurchaseContextManager.getInstance();
     }
@@ -155,11 +152,6 @@ public class PurchaseDialogManager {
                 String expiry = etExpiry.getEditText().getText().toString();
                 String cvv = etCvv.getEditText().getText().toString();
                 String name = etName.getEditText().getText().toString();
-
-                // Notify card callback if set
-                if (cardCallback != null) {
-                    cardCallback.onCardSubmitted(cardNumber, expiry, cvv, name);
-                }
 
                 // Process card payment
                 if (dialogCallback != null) {
