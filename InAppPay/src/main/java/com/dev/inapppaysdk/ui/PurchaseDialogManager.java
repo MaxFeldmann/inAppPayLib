@@ -1,7 +1,9 @@
 package com.dev.inapppaysdk.ui;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,7 +34,13 @@ public class PurchaseDialogManager {
     private PurchaseDialogCallback dialogCallback;
     private PurchaseContextManager contextManager;
 
+    // In your constructor, validate the context
     public PurchaseDialogManager(Context context, PurchaseDialogCallback dialogCallback) {
+        // Ensure we have an Activity context
+        if (!(context instanceof Activity)) {
+            throw new IllegalArgumentException("Context must be an Activity context");
+        }
+
         this.context = new ContextThemeWrapper(context, R.style.Theme_SDK_Dialog);
         this.dialogCallback = dialogCallback;
         this.contextManager = PurchaseContextManager.getInstance();
@@ -55,6 +63,22 @@ public class PurchaseDialogManager {
     }
 
     private void showPurchaseDialog(String title, String description) {
+        // Validate context before showing dialog
+        if (context == null) {
+            Log.e("Dialog", "Context is null");
+            return;
+        }
+
+        // Get the base context (Activity) from ContextThemeWrapper
+        Context baseContext = ((ContextThemeWrapper) context).getBaseContext();
+        if (baseContext instanceof Activity) {
+            Activity activity = (Activity) baseContext;
+            if (activity.isFinishing() || activity.isDestroyed()) {
+                Log.e("Dialog", "Activity is finishing or destroyed");
+                return;
+            }
+        }
+
         Dialog dialog = new Dialog(context);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
