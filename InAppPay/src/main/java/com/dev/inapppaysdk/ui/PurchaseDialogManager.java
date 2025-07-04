@@ -33,8 +33,7 @@ public class PurchaseDialogManager {
     private PurchaseContextManager contextManager;
 
     public PurchaseDialogManager(Context context, PurchaseDialogCallback dialogCallback) {
-        this.context = new ContextThemeWrapper(context,
-                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog);
+        this.context = new ContextThemeWrapper(context, R.style.Theme_SDK_Dialog);
         this.dialogCallback = dialogCallback;
         this.contextManager = PurchaseContextManager.getInstance();
     }
