@@ -68,6 +68,7 @@ public class PurchaseDialogManager {
         );
 
         setupViews(dialog, view, title);
+        dialog.show();
     }
 
     private void setupViews(Dialog dialog, View view, String title) {
