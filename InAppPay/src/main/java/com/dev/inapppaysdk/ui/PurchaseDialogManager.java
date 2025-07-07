@@ -46,15 +46,15 @@ public class PurchaseDialogManager {
         this.contextManager = PurchaseContextManager.getInstance();
     }
 
-    public void showOnetimeDialog() {
+    public void showOnetimeDialog(String title, String description) {
         showPurchaseDialog("One-Time Purchase", "Complete your one-time purchase");
     }
 
-    public void showRepurchaseDialog() {
+    public void showRepurchaseDialog(String title, String description) {
         showPurchaseDialog("Repurchase Item", "Purchase this item");
     }
 
-    public void showSubscriptionDialog() {
+    public void showSubscriptionDialog(String title, String description) {
         showPurchaseDialog("Subscription", "Subscribe");
     }
 

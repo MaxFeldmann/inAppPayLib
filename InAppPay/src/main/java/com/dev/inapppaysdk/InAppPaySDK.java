@@ -106,13 +106,13 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
                         // Show appropriate popup based on item type
                         switch (itemType) {
                             case InAppConstants.TYPE_ONETIME:
-                                dialogManager.showOnetimeDialog();
+                                dialogManager.showOnetimeDialog((String) itemData.get("name"), (String) itemData.get("description"));
                                 break;
                             case InAppConstants.TYPE_REPURCHASE:
-                                dialogManager.showRepurchaseDialog();
+                                dialogManager.showRepurchaseDialog((String) itemData.get("name"), (String) itemData.get("description"));
                                 break;
                             case InAppConstants.TYPE_SUBSCRIPTION:
-                                dialogManager.showSubscriptionDialog();
+                                dialogManager.showSubscriptionDialog((String) itemData.get("name"), (String) itemData.get("description"));
                                 break;
                             default:
                                 callback.onError("Unknown item type: " + itemType, "INVALID_ITEM_TYPE");
@@ -281,17 +281,17 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
     }
 
     // Popup methods of PurchaseDialogManager
-    public void popupOnetime() {
-        dialogManager.showOnetimeDialog();
-    }
-
-    public void popupRepurchase() {
-        dialogManager.showRepurchaseDialog();
-    }
-
-    public void popupSubscription() {
-        dialogManager.showSubscriptionDialog();
-    }
+//    public void popupOnetime() {
+//        dialogManager.showOnetimeDialog();
+//    }
+//
+//    public void popupRepurchase() {
+//        dialogManager.showRepurchaseDialog();
+//    }
+//
+//    public void popupSubscription() {
+//        dialogManager.showSubscriptionDialog((String) itemData.get(""), itemData.get(""));
+//    }
 
     // PurchaseDialogManager.PurchaseDialogCallback implementation
     @Override
