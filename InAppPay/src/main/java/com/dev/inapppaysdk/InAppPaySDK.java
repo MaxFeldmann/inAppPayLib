@@ -9,6 +9,8 @@ import com.dev.inapppaysdk.ui.PurchaseDialogManager;
 import com.dev.inapppaysdk.interfaces.Popupable;
 import com.dev.inapppaysdk.constants.InAppConstants;
 
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -238,7 +240,21 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
                         contextManager.reset();
                     }
                 } else {
-                    callback.onError("Server error: " + response.code(), "SERVER_ERROR");
+                    try {
+                        String errorJson = response.errorBody() != null ? response.errorBody().string() : null;
+
+                        if (errorJson != null) {
+                            JSONObject errorObj = new JSONObject(errorJson);
+                            String errorMessage = errorObj.optString("error", "Validation failed");
+                            String errorCode = errorObj.optString("errorCode", "VALIDATION_FAILED");
+
+                            callback.onError(errorMessage, errorCode);
+                        } else {
+                            callback.onError("Unknown server error", "UNKNOWN_ERROR");
+                        }
+                    } catch (Exception e) {
+                        callback.onError("Failed to parse error: " + e.getMessage(), "ERROR_PARSE_FAILED");
+                    }
                     contextManager.reset();
                 }
             }
@@ -296,7 +312,21 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
                         callback.onError(error != null ? error : "Failed to check purchase status", errorCode);
                     }
                 } else {
-                    callback.onError("Server error: " + response.code(), "SERVER_ERROR");
+                    try {
+                        String errorJson = response.errorBody() != null ? response.errorBody().string() : null;
+
+                        if (errorJson != null) {
+                            JSONObject errorObj = new JSONObject(errorJson);
+                            String errorMessage = errorObj.optString("error", "Validation failed");
+                            String errorCode = errorObj.optString("errorCode", "VALIDATION_FAILED");
+
+                            callback.onError(errorMessage, errorCode);
+                        } else {
+                            callback.onError("Unknown server error", "UNKNOWN_ERROR");
+                        }
+                    } catch (Exception e) {
+                        callback.onError("Failed to parse error: " + e.getMessage(), "ERROR_PARSE_FAILED");
+                    }
                 }
             }
 
@@ -349,7 +379,21 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
                         callback.onError(error != null ? error : "Failed to check subscription status", errorCode);
                     }
                 } else {
-                    callback.onError("Server error: " + response.code(), "SERVER_ERROR");
+                    try {
+                        String errorJson = response.errorBody() != null ? response.errorBody().string() : null;
+
+                        if (errorJson != null) {
+                            JSONObject errorObj = new JSONObject(errorJson);
+                            String errorMessage = errorObj.optString("error", "Validation failed");
+                            String errorCode = errorObj.optString("errorCode", "VALIDATION_FAILED");
+
+                            callback.onError(errorMessage, errorCode);
+                        } else {
+                            callback.onError("Unknown server error", "UNKNOWN_ERROR");
+                        }
+                    } catch (Exception e) {
+                        callback.onError("Failed to parse error: " + e.getMessage(), "ERROR_PARSE_FAILED");
+                    }
                 }
             }
 
@@ -397,7 +441,21 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
                         callback.onError(error != null ? error : "Failed to get subscriptions", "GET_SUBSCRIPTIONS_FAILED");
                     }
                 } else {
-                    callback.onError("Server error: " + response.code(), "SERVER_ERROR");
+                    try {
+                        String errorJson = response.errorBody() != null ? response.errorBody().string() : null;
+
+                        if (errorJson != null) {
+                            JSONObject errorObj = new JSONObject(errorJson);
+                            String errorMessage = errorObj.optString("error", "Validation failed");
+                            String errorCode = errorObj.optString("errorCode", "VALIDATION_FAILED");
+
+                            callback.onError(errorMessage, errorCode);
+                        } else {
+                            callback.onError("Unknown server error", "UNKNOWN_ERROR");
+                        }
+                    } catch (Exception e) {
+                        callback.onError("Failed to parse error: " + e.getMessage(), "ERROR_PARSE_FAILED");
+                    }
                 }
             }
 
@@ -498,9 +556,21 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
                             );
                         }
                     }
-                } else {
-                    if (callback != null) {
-                        callback.onError("Server error: " + response.code(), "SERVER_ERROR");
+                } else if (context != null) {
+                    try {
+                        String errorJson = response.errorBody() != null ? response.errorBody().string() : null;
+
+                        if (errorJson != null) {
+                            JSONObject errorObj = new JSONObject(errorJson);
+                            String errorMessage = errorObj.optString("error", "Validation failed");
+                            String errorCode = errorObj.optString("errorCode", "VALIDATION_FAILED");
+
+                            callback.onError(errorMessage, errorCode);
+                        } else {
+                            callback.onError("Unknown server error", "UNKNOWN_ERROR");
+                        }
+                    } catch (Exception e) {
+                        callback.onError("Failed to parse error: " + e.getMessage(), "ERROR_PARSE_FAILED");
                     }
                 }
                 contextManager.reset();
