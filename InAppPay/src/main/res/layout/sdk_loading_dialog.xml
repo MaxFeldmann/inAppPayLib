@@ -7,7 +7,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="24dp"
-    android:background="@android:color/white">
+    android:background="@android:color/transparent" >
 
     <com.airbnb.lottie.LottieAnimationView
         android:id="@+id/lottieLoader"
@@ -16,13 +16,4 @@
         lottie:lottie_autoPlay="true"
         lottie:lottie_loop="true"
         lottie:lottie_rawRes="@raw/loading" />
-
-    <TextView
-        android:id="@+id/loadingText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/loading_str"
-        android:textSize="16sp"
-        android:textColor="@android:color/black"
-        android:layout_marginTop="12dp" />
 </LinearLayout>

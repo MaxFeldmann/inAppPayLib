@@ -2,6 +2,7 @@ package com.dev.inapppaysdk.utils;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.graphics.drawable.ColorDrawable;
 import android.view.ViewGroup;
 import android.view.Window;
 
@@ -15,6 +16,8 @@ public class LoadingDialogHelper {
         loadingDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         loadingDialog.setContentView(R.layout.sdk_loading_dialog);
         loadingDialog.setCancelable(false);
+
+        loadingDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
         loadingDialog.getWindow().setLayout(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
