@@ -6,11 +6,17 @@ import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Singleton Retrofit API client for communicating with Firebase Cloud Functions.
+ */
 public class ApiClient {
     private static final String BASE_URL = "https://us-central1-inapppay-47111.cloudfunctions.net";
     private static Retrofit retrofit = null;
     private static InAppApiService apiService = null;
 
+    /**
+     * Provides singleton access to the API service interface.
+     */
     public static InAppApiService getApiService() {
         if (apiService == null) {
             apiService = getRetrofitInstance().create(InAppApiService.class);
@@ -18,13 +24,14 @@ public class ApiClient {
         return apiService;
     }
 
+    /**
+     * Builds and returns a configured Retrofit instance.
+     */
     private static Retrofit getRetrofitInstance() {
         if (retrofit == null) {
-            // Create logging interceptor for debugging (optional)
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+            logging.setLevel(HttpLoggingInterceptor.Level.BODY); // Log request/response bodies
 
-            // Create OkHttp client with timeouts
             OkHttpClient client = new OkHttpClient.Builder()
                     .addInterceptor(logging)
                     .connectTimeout(30, TimeUnit.SECONDS)

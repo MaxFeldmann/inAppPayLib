@@ -22,8 +22,28 @@ import com.dev.inapppaysdk.logic.Watcher;
 import com.dev.inapppaysdk.utils.PurchaseContextManager;
 import com.google.android.material.textfield.TextInputLayout;
 
+/**
+ * <h1>PurchaseDialogManager</h1>
+ *
+ * <p>
+ * Internal helper that shows styled purchase dialogs based on the product type.
+ * It supports one-time, repurchase, and subscription flows with step-by-step UI
+ * and field validation.
+ * </p>
+ *
+ * <h2>Usage</h2>
+ * <pre>{@code
+ * PurchaseDialogManager manager = new PurchaseDialogManager(activity, callback);
+ * manager.showOnetimeDialog("Title", "Description");
+ * }</pre>
+ *
+ * <p><strong>Important:</strong> this class requires an Activity context.
+ * Never pass Application context, or dialog inflation will crash.</p>
+ *
+ */
 public class PurchaseDialogManager {
 
+    /** Interface for dialog callback events. */
     public interface PurchaseDialogCallback {
         void onPurchaseRequested(String paymentMethod, String cardNumber, String expiry, String cvv, String name);
 
@@ -34,7 +54,13 @@ public class PurchaseDialogManager {
     private PurchaseDialogCallback dialogCallback;
     private PurchaseContextManager contextManager;
 
-    // In your constructor, validate the context
+    /**
+     * Creates a new purchase dialog manager tied to an Activity context.
+     *
+     * @param context an Activity context, not application context
+     * @param dialogCallback a callback to handle user actions
+     * @throws IllegalArgumentException if the context is not an Activity
+     */
     public PurchaseDialogManager(Context context, PurchaseDialogCallback dialogCallback) {
         // Ensure we have an Activity context
         if (!(context instanceof Activity)) {
@@ -102,12 +128,12 @@ public class PurchaseDialogManager {
 
         titleText.setText(title);
 
-        // Display amount information
-        String amount = contextManager.getAmount();
+        // Display price information
+        String price = contextManager.getPrice();
         String label = contextManager.getLabel();
 
-        if (amount != null && label != null) {
-            amountText.setText(label + ": " + "$ " + amount);
+        if (price != null && label != null) {
+            amountText.setText(label + ": " + "$ " + price);
             amountText.setVisibility(View.VISIBLE);
         } else {
             amountText.setVisibility(View.GONE);

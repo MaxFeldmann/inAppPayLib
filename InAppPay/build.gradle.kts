@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.okhttp3.logging.interceptor)
 
     implementation(libs.gson)
+    implementation(libs.lottie)
 }
 
 afterEvaluate {

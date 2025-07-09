@@ -11,12 +11,20 @@ public class Validator {
     private final TextInputLayout inputLayout;
     private final List<Watcher> watchers;
 
+
+    /**
+     * The Validator class attaches a group of Watchers to a TextInputLayout
+     * and manages validation + error display.
+     */
     private Validator(TextInputLayout inputLayout, List<Watcher> watchers) {
         this.inputLayout = inputLayout;
         this.watchers = watchers;
         attachListener();
     }
 
+    /**
+     * Attaches live text change listener to validate input as user types.
+     */
     private void attachListener() {
         if (inputLayout.getEditText() == null)
             return;
@@ -31,9 +39,9 @@ public class Validator {
     }
 
     /**
-     * Validates the provided text against all watchers,
-     * sets/clears the error on the TextInputLayout, and
-     * returns true if everything passed.
+     * Validates the input and updates the error message.
+     * @param text the current input string
+     * @return true if all watchers passed
      */
     private boolean runValidation(String text) {
         for (Watcher w : watchers) {
@@ -47,8 +55,8 @@ public class Validator {
     }
 
     /**
-     * Public API: check the current content of the EditText
-     * and return whether it’s valid.
+     * Public method to trigger validation manually.
+     * @return true if the current text in the field is valid
      */
     public boolean isValid() {
         if (inputLayout.getEditText() == null)
@@ -57,6 +65,9 @@ public class Validator {
         return runValidation(current);
     }
 
+    /**
+     * Fluent Builder for creating Validator instances.
+     */
     public static class Builder {
         private final TextInputLayout inputLayout;
         private final List<Watcher> watchers = new ArrayList<>();
@@ -87,6 +98,9 @@ public class Validator {
         }
     }
 
+    /**
+     * Simplified text watcher to avoid overriding unused methods.
+     */
     private abstract static class SimpleTextWatcher implements TextWatcher {
         @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) { }
         @Override public void afterTextChanged(Editable e) { }

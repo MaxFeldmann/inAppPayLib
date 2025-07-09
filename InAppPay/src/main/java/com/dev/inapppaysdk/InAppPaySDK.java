@@ -4,8 +4,7 @@ import android.content.Context;
 import com.dev.inapppaysdk.api.ApiClient;
 import com.dev.inapppaysdk.api.InAppApiService;
 import com.dev.inapppaysdk.callbacks.*;
-import com.dev.inapppaysdk.utils.DeviceUtils;
-import com.dev.inapppaysdk.utils.PurchaseContextManager;
+import com.dev.inapppaysdk.utils.*;
 import com.dev.inapppaysdk.ui.PurchaseDialogManager;
 import com.dev.inapppaysdk.interfaces.Popupable;
 import com.dev.inapppaysdk.constants.InAppConstants;
@@ -17,14 +16,93 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * <h1>InAppPaySDK</h1>
+ *
+ * <p>
+ * Lightweight helper that wires an Android client to a set of Firebase Cloud
+ * Functions, providing a <em>single API surface</em> for validating items,
+ * charging cards / PayPal, and checking a user’s purchase or subscription
+ * status.  It also shows context‑aware purchase dialogs so you do not have to
+ * build any UI yourself.
+ * </p>
+ *
+ * <h2>Main capabilities</h2>
+ * <ul>
+ *   <li><strong>Item validation</strong> &mdash; calls
+ *       <code>validateItemForPurchase</code> to ensure a product can be bought
+ *       before showing any UI.</li>
+ *   <li><strong>Unified checkout UI</strong> &mdash; one‑time, repurchase, and
+ *       subscription dialogs are rendered automatically.</li>
+ *   <li><strong>Secure processing</strong> &mdash; relays payment details to
+ *       <code>processPurchase</code> Cloud Function via Retrofit.</li>
+ *   <li><strong>Status helpers</strong>
+ *     <ul>
+ *       <li>{@link #isUserPurchased(String, CheckCallback)}</li>
+ *       <li>{@link #isUserSubscribed(String, CheckCallback)}</li>
+ *       <li>{@link #getUserSubscriptions(PurchasesCallback)}</li>
+ *     </ul>
+ *   </li>
+ * </ul>
+ *
+ <h2>Typical usage</h2>
+ <ol>
+ <li>
+ <strong>Create inside your Activity</strong>
+ <pre>
+ public class CheckoutActivity extends AppCompatActivity {
+ private InAppPaySDK paySdk;
+
+ {@code @Override}
+ protected void onCreate(Bundle savedInstanceState) {
+ super.onCreate(savedInstanceState);
+ setContentView(R.layout.activity_checkout);
+
+ paySdk = new InAppPaySDK("MyProject", this);  // “this” is the Activity
+ paySdk.setLabel("Premium Pack").setAmount("4.99");
+ }
+ </pre>
+ </li>
+ <li>
+ <strong>Kick off purchase flow</strong>
+ <pre>
+ paySdk.buy("premium_01", new PurchaseCallback() {
+ {@code @Override}
+ public  void onSuccess(String msg, Map&lt;String,Object&gt; data) {  … }
+
+ {@code @Override} public  void onError(String err, String code) {  … }
+ } );
+ }
+ </pre>
+ </li>
+ <li>
+ <strong>Release in <code>onDestroy()</code></strong>
+ <pre>
+ {@code @Override}
+ protected void onDestroy() {
+ paySdk = null;   // allow GC; SDK keeps no static references
+ super.onDestroy();
+ }
+ }
+ </pre>
+ </li>
+ </ol>
+ *
+ * <p><strong>Threading</strong> – all callbacks are delivered on the main
+ * thread; network calls run on Retrofit’s executor.</p>
+ *
+ * @author  Your&nbsp;Name
+ * @version 1.0.0
+ * @since   2025‑07‑07
+ */
 public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDialogCallback {
 
     private Context context;
     private String userId;
     private String projectName;
     private String userCountry;
-    private InAppApiService apiService;
-    private PurchaseContextManager contextManager;
+    private final InAppApiService apiService;
+    private final PurchaseContextManager contextManager;
     private PurchaseDialogManager dialogManager;
 
     private InAppPaySDK() {
@@ -32,6 +110,12 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         contextManager = PurchaseContextManager.getInstance();
     }
 
+    /**
+     * Creates a new {@code InAppPaySDK} instance bound to a Firebase project.
+     *
+     * @param projectName Firebase Functions project name
+     * @param context     any valid Android Activity {@link Context}
+     */
     public InAppPaySDK(String projectName, Context context) {
         this.context = context;
         this.apiService = ApiClient.getApiService();
@@ -42,22 +126,36 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         this.userCountry = DeviceUtils.detectUserCountry(context);
     }
 
-    // Remove currency methods since we're using USD by default
+    /**
+     * @return the current dialog label (e.g. “Premium Upgrade”)
+     */
     public String getLabel() {
         return contextManager.getLabel();
     }
 
+    /**
+     * Sets the dialog label shown to the user.
+     *
+     * @param label human‑readable product label
+     * @return this instance for chaining
+     */
     public InAppPaySDK setLabel(String label) {
         contextManager.setLabel(label);
         return this;
     }
 
+    /** @return the amount (ISO‑4217 currency assumed USD) */
     public String getAmount() {
-        return contextManager.getAmount();
+        return contextManager.getPrice();
     }
 
+    /**
+     * Sets the amount (in USD) displayed in dialogs.
+     *
+     * @param amount numeric amount, e.g.&nbsp;“4.99”
+     */
     public void setAmount(String amount) {
-        contextManager.setAmount(amount);
+        contextManager.setPrice(amount);
     }
 
     // Get the user ID (Android ID)
@@ -65,7 +163,21 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         return userId;
     }
 
-    // Main purchase function - calls Firebase Functions
+    /**
+     * Starts a purchase flow.
+     *
+     * <ul>
+     *   <li>Calls <code>validateItemForPurchase</code> on your
+     *       Cloud Function.</li>
+     *   <li>Shows the corresponding purchase dialog
+     *       (<em>one‑time</em>, <em>repurchase</em> or
+     *       <em>subscription</em>).</li>
+     *   <li>Invokes {@link PurchaseCallback} on success or failure.</li>
+     * </ul>
+     *
+     * @param productId product key exactly as defined in your back‑end
+     * @param callback  host‑side handler for success / error
+     */
     public void buy(String productId, PurchaseCallback callback) {
         if (userId == null || userId.isEmpty()) {
             callback.onError("Could not get device ID", "MISSING_DEVICE_ID");
@@ -77,33 +189,32 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
             return;
         }
 
-        // Set purchase context in manager
         contextManager.setPurchaseContext(productId, callback);
 
-        // Prepare request data for Firebase Function - matches validateItemForPurchase expected params
         Map<String, Object> requestData = new HashMap<>();
         requestData.put("projectName", projectName);
         requestData.put("productId", productId);
         requestData.put("userId", userId);
 
-        // Make Retrofit call to Firebase Function
+        LoadingDialogHelper loadingDialog = new LoadingDialogHelper();
+        loadingDialog.show(context); // Show loading before network call
+
         Call<Map<String, Object>> call = apiService.validateItemForPurchase(requestData);
         call.enqueue(new Callback<Map<String, Object>>() {
             @Override
             public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
+                loadingDialog.dismiss(); // Hide loading after response
+
                 if (response.isSuccessful() && response.body() != null) {
                     Map<String, Object> responseBody = response.body();
                     Boolean success = (Boolean) responseBody.get("success");
 
                     if (Boolean.TRUE.equals(success)) {
-                        // Extract item data from Firebase Function response
                         Map<String, Object> itemData = (Map<String, Object>) responseBody.get("data");
                         String itemType = (String) itemData.get("type");
 
-                        // Set item data in context manager
                         contextManager.setItemData(itemData, itemType);
 
-                        // Show appropriate popup based on item type
                         switch (itemType) {
                             case InAppConstants.TYPE_ONETIME:
                                 dialogManager.showOnetimeDialog((String) itemData.get("name"), (String) itemData.get("description"));
@@ -134,13 +245,21 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
 
             @Override
             public void onFailure(Call<Map<String, Object>> call, Throwable t) {
+                loadingDialog.dismiss(); // Hide loading on failure
                 callback.onError("Network error: " + t.getMessage(), "NETWORK_ERROR");
                 contextManager.reset();
             }
         });
     }
 
-    // Check if user purchased a one-time or repurchase item
+
+    /**
+     * Checks whether the current user already owns a one‑time or repurchase
+     * product.
+     *
+     * @param productId product key
+     * @param callback  result callback; {@code onResult(true, data)} if owned
+     */
     public void isUserPurchased(String productId, CheckCallback callback) {
         if (userId == null || userId.isEmpty()) {
             callback.onError("Could not get device ID", "MISSING_DEVICE_ID");
@@ -188,7 +307,12 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         });
     }
 
-    // Check if user has active subscription
+    /**
+     * Checks if the current user has an <em>active</em> subscription.
+     *
+     * @param productId subscription product key
+     * @param callback  result callback
+     */
     public void isUserSubscribed(String productId, CheckCallback callback) {
         if (userId == null || userId.isEmpty()) {
             callback.onError("Could not get device ID", "MISSING_DEVICE_ID");
@@ -236,7 +360,11 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         });
     }
 
-    // Get user's subscription history
+    /**
+     * Retrieves the user’s full subscription history.
+     *
+     * @param callback invoked with a list/array from the back‑end
+     */
     public void getUserSubscriptions(PurchasesCallback callback) {
         if (userId == null || userId.isEmpty()) {
             callback.onError("Could not get device ID", "MISSING_DEVICE_ID");
@@ -280,20 +408,16 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         });
     }
 
-    // Popup methods of PurchaseDialogManager
-//    public void popupOnetime() {
-//        dialogManager.showOnetimeDialog();
-//    }
-//
-//    public void popupRepurchase() {
-//        dialogManager.showRepurchaseDialog();
-//    }
-//
-//    public void popupSubscription() {
-//        dialogManager.showSubscriptionDialog((String) itemData.get(""), itemData.get(""));
-//    }
-
-    // PurchaseDialogManager.PurchaseDialogCallback implementation
+    /**
+     * Internal bridge from {@link PurchaseDialogManager} to the purchase
+     * pipeline.
+     *
+     * @param paymentMethod one of {@code card} or {@code paypal}
+     * @param cardNumber    raw card digits (if card)
+     * @param expiry        <code>MM/YY</code> (if card)
+     * @param cvv           3–4 digit code (if card)
+     * @param name          cardholder name (if card)
+     */
     @Override
     public void onPurchaseRequested(String paymentMethod, String cardNumber, String expiry, String cvv, String name) {
         processPurchase(paymentMethod, cardNumber, expiry, cvv, name);
@@ -308,6 +432,7 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         contextManager.reset();
     }
 
+    // Call the server through
     private void processPurchase(String paymentMethod, String cardNumber, String expiry, String cvv, String name) {
         if (!contextManager.isValidContext()) {
             PurchaseCallback callback = contextManager.getCurrentPurchaseCallback();
@@ -413,10 +538,19 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
         return "unknown";
     }
 
+    /**
+     * Forces the generic “Complete your payment” dialog to appear.
+     * Useful if you want to open the dialog outside the normal validation flow.
+     */
     public void show() {
         dialogManager.showGeneralDialog("Payment", "Complete your payment");
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>Implements {@link Popupable} so that a host component can simply call
+     * {@code sdk.popUp(context)} without holding additional UI logic.</p>
+     */
     @Override
     public void popUp(Context context) {
         this.context = context;
