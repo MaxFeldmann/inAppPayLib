@@ -13,9 +13,9 @@
         android:id="@+id/lottieLoader"
         android:layout_width="150dp"
         android:layout_height="150dp"
-        lottie:lottie_rawRes="@raw/loading"
         lottie:autoPlay="true"
-        lottie:loop="true" />
+        lottie:loop="true"
+        lottie:lottie_rawRes="@raw/loading" />
 
     <TextView
         android:id="@+id/loadingText"
