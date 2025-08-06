@@ -8,6 +8,7 @@ import com.dev.inapppaysdk.utils.*;
 import com.dev.inapppaysdk.ui.PurchaseDialogManager;
 import com.dev.inapppaysdk.interfaces.Popupable;
 import com.dev.inapppaysdk.constants.InAppConstants;
+import com.dev.inapppaysdk.utils.ErrorDialogHelper;
 
 import org.json.JSONObject;
 
@@ -166,107 +167,122 @@ public class InAppPaySDK implements Popupable, PurchaseDialogManager.PurchaseDia
     }
 
     /**
-     * Starts a purchase flow.
-     *
-     * <ul>
-     *   <li>Calls <code>validateItemForPurchase</code> on your
-     *       Cloud Function.</li>
-     *   <li>Shows the corresponding purchase dialog
-     *       (<em>one‑time</em>, <em>repurchase</em> or
-     *       <em>subscription</em>).</li>
-     *   <li>Invokes {@link PurchaseCallback} on success or failure.</li>
-     * </ul>
-     *
-     * @param productId product key exactly as defined in your back‑end
-     * @param callback  host‑side handler for success / error
-     */
-    public void buy(String productId, PurchaseCallback callback) {
-        if (userId == null || userId.isEmpty()) {
-            callback.onError("Could not get device ID", "MISSING_DEVICE_ID");
-            return;
-        }
+ * Starts a purchase flow.
+ *
+ * <ul>
+ *   <li>Calls <code>validateItemForPurchase</code> on your
+ *       Cloud Function.</li>
+ *   <li>Shows the corresponding purchase dialog
+ *       (<em>one‑time</em>, <em>repurchase</em> or
+ *       <em>subscription</em>).</li>
+ *   <li>Invokes {@link PurchaseCallback} on success or failure.</li>
+ * </ul>
+ *
+ * @param productId product key exactly as defined in your back‑end
+ * @param callback  host‑side handler for success / error
+ */
+public void buy(String productId, PurchaseCallback callback) {
+    if (userId == null || userId.isEmpty()) {
+        ErrorDialogHelper.showErrorDialogWithCode(context, 
+            "Could not get device ID", "MISSING_DEVICE_ID");
+        callback.onError("Could not get device ID", "MISSING_DEVICE_ID");
+        return;
+    }
 
-        if (projectName == null || projectName.isEmpty()) {
-            callback.onError("Project name is required", "MISSING_PROJECT_NAME");
-            return;
-        }
+    if (projectName == null || projectName.isEmpty()) {
+        ErrorDialogHelper.showErrorDialogWithCode(context, 
+            "Project name is required", "MISSING_PROJECT_NAME");
+        callback.onError("Project name is required", "MISSING_PROJECT_NAME");
+        return;
+    }
 
-        contextManager.setPurchaseContext(productId, callback);
+    contextManager.setPurchaseContext(productId, callback);
 
-        Map<String, Object> requestData = new HashMap<>();
-        requestData.put("projectName", projectName);
-        requestData.put("productId", productId);
-        requestData.put("userId", userId);
+    Map<String, Object> requestData = new HashMap<>();
+    requestData.put("projectName", projectName);
+    requestData.put("productId", productId);
+    requestData.put("userId", userId);
 
-        LoadingDialogHelper loadingDialog = new LoadingDialogHelper();
-        loadingDialog.show(context); // Show loading before network call
+    LoadingDialogHelper loadingDialog = new LoadingDialogHelper();
+    loadingDialog.show(context); // Show loading before network call
 
-        Call<Map<String, Object>> call = apiService.validateItemForPurchase(requestData);
-        call.enqueue(new Callback<Map<String, Object>>() {
-            @Override
-            public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
-                loadingDialog.dismiss(); // Hide loading after response
+    Call<Map<String, Object>> call = apiService.validateItemForPurchase(requestData);
+    call.enqueue(new Callback<Map<String, Object>>() {
+        @Override
+        public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
+            loadingDialog.dismiss(); // Hide loading after response
 
-                if (response.isSuccessful() && response.body() != null) {
-                    Map<String, Object> responseBody = response.body();
-                    Boolean success = (Boolean) responseBody.get("success");
+            if (response.isSuccessful() && response.body() != null) {
+                Map<String, Object> responseBody = response.body();
+                Boolean success = (Boolean) responseBody.get("success");
 
-                    if (Boolean.TRUE.equals(success)) {
-                        Map<String, Object> itemData = (Map<String, Object>) responseBody.get("data");
-                        String itemType = (String) itemData.get("type");
+                if (Boolean.TRUE.equals(success)) {
+                    Map<String, Object> itemData = (Map<String, Object>) responseBody.get("data");
+                    String itemType = (String) itemData.get("type");
 
-                        contextManager.setItemData(itemData, itemType);
+                    contextManager.setItemData(itemData, itemType);
 
-                        switch (itemType) {
-                            case InAppConstants.TYPE_ONETIME:
-                                dialogManager.showOnetimeDialog((String) itemData.get("name"), (String) itemData.get("description"));
-                                break;
-                            case InAppConstants.TYPE_REPURCHASE:
-                                dialogManager.showRepurchaseDialog((String) itemData.get("name"), (String) itemData.get("description"));
-                                break;
-                            case InAppConstants.TYPE_SUBSCRIPTION:
-                                dialogManager.showSubscriptionDialog((String) itemData.get("name"), (String) itemData.get("description"));
-                                break;
-                            default:
-                                callback.onError("Unknown item type: " + itemType, "INVALID_ITEM_TYPE");
-                                contextManager.reset();
-                                break;
-                        }
-                    } else {
-                        String error = (String) responseBody.get("error");
-                        String errorCode = (String) responseBody.get("errorCode");
-                        callback.onError(error != null ? error : "Item validation failed",
-                                errorCode != null ? errorCode : "VALIDATION_FAILED");
-                        contextManager.reset();
+                    switch (itemType) {
+                        case InAppConstants.TYPE_ONETIME:
+                            dialogManager.showOnetimeDialog((String) itemData.get("name"), (String) itemData.get("description"));
+                            break;
+                        case InAppConstants.TYPE_REPURCHASE:
+                            dialogManager.showRepurchaseDialog((String) itemData.get("name"), (String) itemData.get("description"));
+                            break;
+                        case InAppConstants.TYPE_SUBSCRIPTION:
+                            dialogManager.showSubscriptionDialog((String) itemData.get("name"), (String) itemData.get("description"));
+                            break;
+                        default:
+                            String errorMsg = "Unknown item type: " + itemType;
+                            ErrorDialogHelper.showErrorDialogWithCode(context, errorMsg, "INVALID_ITEM_TYPE");
+                            callback.onError(errorMsg, "INVALID_ITEM_TYPE");
+                            contextManager.reset();
+                            break;
                     }
                 } else {
-                    try {
-                        String errorJson = response.errorBody() != null ? response.errorBody().string() : null;
-
-                        if (errorJson != null) {
-                            JSONObject errorObj = new JSONObject(errorJson);
-                            String errorMessage = errorObj.optString("error", "Validation failed");
-                            String errorCode = errorObj.optString("errorCode", "VALIDATION_FAILED");
-
-                            callback.onError(errorMessage, errorCode);
-                        } else {
-                            callback.onError("Unknown server error", "UNKNOWN_ERROR");
-                        }
-                    } catch (Exception e) {
-                        callback.onError("Failed to parse error: " + e.getMessage(), "ERROR_PARSE_FAILED");
-                    }
+                    String error = (String) responseBody.get("error");
+                    String errorCode = (String) responseBody.get("errorCode");
+                    String errorMessage = error != null ? error : "Item validation failed";
+                    String finalErrorCode = errorCode != null ? errorCode : "VALIDATION_FAILED";
+                    
+                    ErrorDialogHelper.showErrorDialogWithCode(context, errorMessage, finalErrorCode);
+                    callback.onError(errorMessage, finalErrorCode);
                     contextManager.reset();
                 }
-            }
+            } else {
+                try {
+                    String errorJson = response.errorBody() != null ? response.errorBody().string() : null;
 
-            @Override
-            public void onFailure(Call<Map<String, Object>> call, Throwable t) {
-                loadingDialog.dismiss(); // Hide loading on failure
-                callback.onError("Network error: " + t.getMessage(), "NETWORK_ERROR");
+                    if (errorJson != null) {
+                        JSONObject errorObj = new JSONObject(errorJson);
+                        String errorMessage = errorObj.optString("error", "Validation failed");
+                        String errorCode = errorObj.optString("errorCode", "VALIDATION_FAILED");
+
+                        ErrorDialogHelper.showErrorDialogWithCode(context, errorMessage, errorCode);
+                        callback.onError(errorMessage, errorCode);
+                    } else {
+                        ErrorDialogHelper.showErrorDialogWithCode(context, "Unknown server error", "UNKNOWN_ERROR");
+                        callback.onError("Unknown server error", "UNKNOWN_ERROR");
+                    }
+                } catch (Exception e) {
+                    String errorMsg = "Failed to parse error: " + e.getMessage();
+                    ErrorDialogHelper.showErrorDialogWithCode(context, errorMsg, "ERROR_PARSE_FAILED");
+                    callback.onError(errorMsg, "ERROR_PARSE_FAILED");
+                }
                 contextManager.reset();
             }
-        });
-    }
+        }
+
+        @Override
+        public void onFailure(Call<Map<String, Object>> call, Throwable t) {
+            loadingDialog.dismiss(); // Hide loading on failure
+            String errorMsg = "Network error: " + t.getMessage();
+            ErrorDialogHelper.showErrorDialogWithCode(context, errorMsg, "NETWORK_ERROR");
+            callback.onError(errorMsg, "NETWORK_ERROR");
+            contextManager.reset();
+        }
+    });
+}
 
 
     /**

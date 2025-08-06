@@ -22,6 +22,8 @@ import com.dev.inapppaysdk.logic.Watcher;
 import com.dev.inapppaysdk.utils.PurchaseContextManager;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.Map;
+
 /**
  * <h1>PurchaseDialogManager</h1>
  *
@@ -73,22 +75,22 @@ public class PurchaseDialogManager {
     }
 
     public void showOnetimeDialog(String title, String description) {
-        showPurchaseDialog("One-Time Purchase", "Complete your one-time purchase");
+        showPurchaseDialog("One-Time Purchase", title, description);
     }
 
     public void showRepurchaseDialog(String title, String description) {
-        showPurchaseDialog("Repurchase Item", "Purchase this item");
+        showPurchaseDialog("Repurchase Item", title, description);
     }
 
     public void showSubscriptionDialog(String title, String description) {
-        showPurchaseDialog("Subscription", "Subscribe");
+        showPurchaseDialog("Subscription", title, description);
     }
 
     public void showGeneralDialog(String title, String description) {
-        showPurchaseDialog(title, description);
+        showPurchaseDialog(title, null, description);
     }
 
-    private void showPurchaseDialog(String title, String description) {
+    private void showPurchaseDialog(String dialogTitle, String productName, String productDescription) {
         // Validate context before showing dialog
         if (context == null) {
             Log.e("Dialog", "Context is null");
@@ -117,23 +119,54 @@ public class PurchaseDialogManager {
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
 
-        setupViews(dialog, view, title);
+        setupViews(dialog, view, dialogTitle, productName, productDescription);
         dialog.show();
     }
 
-    private void setupViews(Dialog dialog, View view, String title) {
+    private void setupViews(Dialog dialog, View view, String dialogTitle, String productName, String productDescription) {
         ImageView btnClose = view.findViewById(R.id.btnClose);
         TextView amountText = view.findViewById(R.id.amountText);
         TextView titleText = view.findViewById(R.id.titleText);
+        TextView productNameText = view.findViewById(R.id.productNameText);
+        TextView productDescriptionText = view.findViewById(R.id.productDescriptionText);
 
-        titleText.setText(title);
+        titleText.setText(dialogTitle);
+
+        // Display product information
+        if (productName != null && !productName.isEmpty()) {
+            productNameText.setText(productName);
+            productNameText.setVisibility(View.VISIBLE);
+        } else {
+            productNameText.setVisibility(View.GONE);
+        }
+
+        if (productDescription != null && !productDescription.isEmpty()) {
+            productDescriptionText.setText(productDescription);
+            productDescriptionText.setVisibility(View.VISIBLE);
+        } else {
+            productDescriptionText.setVisibility(View.GONE);
+        }
 
         // Display price information
         String price = contextManager.getPrice();
         String label = contextManager.getLabel();
 
-        if (price != null && label != null) {
-            amountText.setText(label + ": " + "$ " + price);
+        if (price != null && !price.isEmpty()) {
+            // Get item data to check for currency or use default USD
+            Map<String, Object> itemData = contextManager.getItemData();
+            String currency = "USD"; // Default currency
+
+            if (itemData != null && itemData.containsKey("currency")) {
+                currency = (String) itemData.get("currency");
+            }
+
+            // Format price display
+            String priceDisplay = getCurrencySymbol(currency) + price;
+            if (label != null && !label.isEmpty()) {
+                amountText.setText(label + ": " + priceDisplay);
+            } else {
+                amountText.setText("Price: " + priceDisplay);
+            }
             amountText.setVisibility(View.VISIBLE);
         } else {
             amountText.setVisibility(View.GONE);
@@ -147,6 +180,25 @@ public class PurchaseDialogManager {
         });
 
         setupPaymentSteps(dialog, view);
+    }
+
+    private String getCurrencySymbol(String currency) {
+        switch (currency.toUpperCase()) {
+            case "USD":
+                return "$";
+            case "EUR":
+                return "€";
+            case "GBP":
+                return "£";
+            case "JPY":
+                return "¥";
+            case "CAD":
+                return "C$";
+            case "AUD":
+                return "A$";
+            default:
+                return "$"; // Default to USD symbol
+        }
     }
 
     private void setupPaymentSteps(Dialog dialog, View view) {
@@ -173,22 +225,6 @@ public class PurchaseDialogManager {
         Validator cvvValidator = createCvvValidator(etCvv);
         Validator nameValidator = createNameValidator(etName);
 
-        btnPaypal.setOnClickListener(v -> {
-            stepOneLayout.setVisibility(View.GONE);
-            stepTwoLayout.setVisibility(View.VISIBLE);
-            titleText.setText("Input details");
-            selectedMethodText.setText("You selected: PayPal");
-
-            hideCardInputs(etCardNumber, etExpiry, etCvv, etName);
-            btnSubmitCard.setVisibility(View.GONE);
-
-            // Process PayPal payment
-            if (dialogCallback != null) {
-                dialogCallback.onPurchaseRequested(InAppConstants.PAYMENT_METHOD_PAYPAL, null, null, null, null);
-            }
-            dialog.dismiss();
-        });
-
         btnCard.setOnClickListener(v -> {
             stepOneLayout.setVisibility(View.GONE);
             stepTwoLayout.setVisibility(View.VISIBLE);
@@ -199,19 +235,52 @@ public class PurchaseDialogManager {
             btnSubmitCard.setVisibility(View.VISIBLE);
         });
 
+        btnPaypal.setOnClickListener(v -> {
+            stepOneLayout.setVisibility(View.GONE);
+            stepTwoLayout.setVisibility(View.VISIBLE);
+            titleText.setText("PayPal Payment");
+            selectedMethodText.setText("You selected: PayPal");
+
+            // Hide card inputs and show PayPal-specific inputs
+            hideCardInputs(etCardNumber, etExpiry, etCvv);
+
+            // Repurpose etName for PayPal email
+            etName.setVisibility(View.VISIBLE);
+            etName.setHint("PayPal Email Address");
+            etName.getEditText().setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+
+            btnSubmitCard.setVisibility(View.VISIBLE);
+            btnSubmitCard.setText("Pay with PayPal");
+        });
+
+        // Update the submit button handler to handle PayPal
         btnSubmitCard.setOnClickListener(v -> {
-            if (validateCardInputs(cardValidator, expiryValidator, cvvValidator, nameValidator)) {
-                String cardNumber = etCardNumber.getEditText().getText().toString();
-                String expiry = etExpiry.getEditText().getText().toString();
-                String cvv = etCvv.getEditText().getText().toString();
-                String name = etName.getEditText().getText().toString();
+            String selectedMethod = selectedMethodText.getText().toString();
 
-                // Process card payment
-                if (dialogCallback != null) {
-                    dialogCallback.onPurchaseRequested(InAppConstants.PAYMENT_METHOD_CARD, cardNumber, expiry, cvv, name);
+            if (selectedMethod.contains("PayPal")) {
+                // Validate PayPal email
+                Validator emailValidator = createEmailValidator(etName);
+                if (emailValidator.isValid()) {
+                    String paypalEmail = etName.getEditText().getText().toString();
+
+                    if (dialogCallback != null) {
+                        dialogCallback.onPurchaseRequested(InAppConstants.PAYMENT_METHOD_PAYPAL, paypalEmail, null, null, null);
+                    }
+                    dialog.dismiss();
                 }
+            } else {
+                // Existing card validation logic
+                if (validateCardInputs(cardValidator, expiryValidator, cvvValidator, nameValidator)) {
+                    String cardNumber = etCardNumber.getEditText().getText().toString();
+                    String expiry = etExpiry.getEditText().getText().toString();
+                    String cvv = etCvv.getEditText().getText().toString();
+                    String name = etName.getEditText().getText().toString();
 
-                dialog.dismiss();
+                    if (dialogCallback != null) {
+                        dialogCallback.onPurchaseRequested(InAppConstants.PAYMENT_METHOD_CARD, cardNumber, expiry, cvv, name);
+                    }
+                    dialog.dismiss();
+                }
             }
         });
     }
@@ -271,6 +340,15 @@ public class PurchaseDialogManager {
                 .with(etName)
                 .addWatcher(new Watcher.NotBlank("Name is required"))
                 .addWatcher(new Watcher.PatternWatcher("Invalid name", "^[a-zA-Z ]+$"))
+                .build();
+    }
+
+    private Validator createEmailValidator(TextInputLayout etEmail) {
+        return Validator.Builder
+                .with(etEmail)
+                .addWatcher(new Watcher.NotBlank("Email is required"))
+                .addWatcher(new Watcher.PatternWatcher("Invalid email format",
+                        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"))
                 .build();
     }
 }

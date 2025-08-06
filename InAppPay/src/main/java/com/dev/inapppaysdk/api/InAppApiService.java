@@ -40,13 +40,13 @@ public interface InAppApiService {
     Call<Map<String, Object>> checkUserSubscribed(@Body Map<String, Object> request);
 
     /**
-     * Retrieves all purchase records for the user.
+     * Retrieves all purchase records for the project.
      */
     @POST("getPurchases")
     Call<Map<String, Object>> getPurchases(@Body Map<String, Object> requestData);
 
     /**
-     * Retrieves all subscription records for the user.
+     * Retrieves all subscription records for the project.
      */
     @POST("getSubscriptions")
     Call<Map<String, Object>> getSubscriptions(@Body Map<String, Object> requestData);
